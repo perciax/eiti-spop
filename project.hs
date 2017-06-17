@@ -1,26 +1,44 @@
+--------------------- IMPORTS ------------------------------------
+import Types
+import Display
+import Parser
+import Solver
 
-
-
-
-
------------------------- MAIN ----------------------------------		
-									
+------------------------ MAIN ------------------------------------		
+main :: IO()									
 main = do
 			-- load honeycomb line from file
-			hcLine <- loadHcLine
+			line <- loadHcLine
 			-- print loaded line
-			putStrLn "Zawartość pliku: "
-			putStrLn hcLine
+			putStrLn "File content:"
+			putStrLn line
+			putStrLn "Parsed honeycomb:"
+			let hc = parseHc1 line
+			displayHc hc
+			if isHcFilled hc then putStrLn "filled" else putStrLn "not filled"
+			putStrLn ("First empty hex in first row: "
+					 ++ show (hexIndexInRow Nothing (hc !! 0)))
+			putStrLn ("First empty hex in Honeycomb: "
+					 ++ show (hexIndexInHc Nothing hc))
 
-			print 5
+			let x = (1,6)
+			let nbh = getAllAdjoining x hc
+			putStrLn (show(nbh))
+			let all = getAllPossible
+			putStrLn (show(all))
+			
+			let hc1 = replaceInHc (1,2) (Just 'P') hc
+			displayHc hc1
 
------------------ LOADING FROM FILE ---------------------------
-
+----------------- LOADING FROM FILE -----------------------------
+loadHcLine :: IO String
 loadHcLine = do
-				putStrLn "Podaj nazwe pliku z plastrem"
+				putStrLn "Give filename:"
 				-- get file name
 				fileName <- getLine
 				-- read file content
 				fileContent <- readFile fileName
-				-- retutn file content    
+				-- return file content    
 				return fileContent 
+
+---------------------------------------------------------------
