@@ -21,13 +21,13 @@ main = do
 			putStrLn ("First empty hex in Honeycomb: "
 					 ++ show (hexIndexInHc Nothing hc))
 
-			let x = (1,6)
+			let x = (1,2)
 			let nbh = getAllAdjoining x hc
 			putStrLn (show(nbh))
 			let all = getAllPossible
 			putStrLn (show(all))
 			
-			let hc1 = replaceInHc (1,2) (Just 'P') hc
+			let hc1 = fillHc hc
 			displayHc hc1
 
 ----------------- LOADING FROM FILE -----------------------------

@@ -5,13 +5,49 @@ import Types
 
 -------------------- SOLVER -----------------------------------------
 
+fill hc = fillHc getAllPossible hc
+
+fillHc :: [Hex] -> Honeycomb -> Honeycomb
+fillHc [] _ = error "Honeycomb cannot be solved"
+fillHc pos hc = let newhc = fillHc' pos hc in 
+				case newhc of
+					Just hc -> (\(Just i) -> i) newhc
+					Nothing -> fillHc (tail pos) hc
+					_ -> (\(Just i) -> i) (fillHc' pos (\(Just i) -> i)(newhc))
+
+-- fills Honeycomb
+fillHc' :: [Hex] -> Honeycomb -> Maybe Honeycomb
+fillHc' [] _ = error "Honeycomb cannot be solved"
+fillHc' pos hc = if hexIndexInHc Nothing hc == Nothing then Just hc 
+			else	if (fillNextNothing' pos hc) == Nothing then Nothing
+					else  fillNextNothing' pos hc
+
 -- fills first Hex with Nothing value
-fillNextNothing :: Honeycomb -> Maybe Honeycomb
-fillNextNothing hc = Nothing
+fillNextNothing' :: [Hex] -> Honeycomb -> Maybe Honeycomb
+fillNextNothing' pos hc = let index = hexIndexInHc Nothing hc in
+						if index == Nothing then Just hc
+						else 	if hexToInsert  ((\(Just i) -> i)(index)) pos hc == Nothing then Nothing
+								else  (\i -> (Just i))(replaceInHc ((\(Just i) -> i)(index)) (hexToInsert  ((\(Just i) -> i)(index)) pos hc)  hc)
+
+-- returns hex to insert
+hexToInsert :: (Int, Int) -> [Hex] -> Honeycomb -> Hex
+hexToInsert _ [] _ = Nothing
+hexToInsert (r,i) pos hc 	| hexToInsert' (r,i) pos hc == Nothing = Nothing
+							| otherwise = (\(Just i) -> i)(hexToInsert' (r,i) pos hc)
+
+hexToInsert' :: (Int, Int) -> [Hex] -> Honeycomb -> Maybe Hex
+hexToInsert' _ [] _ = Nothing
+hexToInsert' (r,i) pos hc = firstNotOn pos (getAllAdjoining (r,i) hc)
 
 -- replaces hex in honeycomb
 replaceInHc :: (Int,Int) -> Hex -> Honeycomb -> Honeycomb
 replaceInHc (r, i) hex hc = replaceAtIndex r (replaceAtIndex i hex (hc !! r)) hc
+
+-- returns first from list that is not on second one
+firstNotOn :: Eq a => [a] -> [a] -> Maybe a
+firstNotOn [] _ = Nothing
+firstNotOn (x:xs) list 	| not(elem x list) 	= Just x
+						| otherwise 		= firstNotOn xs list
 
 -- replaces element on list
 replaceAtIndex :: Int -> a -> [a] -> [a]
