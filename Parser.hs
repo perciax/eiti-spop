@@ -20,9 +20,6 @@ parseHc1 s = hcLineToHc (stringToHcLine s)
 
 ------------------ PARSER 2 -----------------------------------
 
-
-
-
 --hcParser :: Parser Honeycomb
 --hcParser = do
 --			let row1 = [(Just 'B'),(Just 'B'),(Just 'B')]

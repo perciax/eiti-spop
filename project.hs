@@ -16,16 +16,6 @@ main = do
 			let hc = parseHc1 line
 			displayHc hc
 			if isHcFilled hc then putStrLn "filled" else putStrLn "not filled"
-			putStrLn ("First empty hex in first row: "
-					 ++ show (hexIndexInRow Nothing (hc !! 0)))
-			putStrLn ("First empty hex in Honeycomb: "
-					 ++ show (hexIndexInHc Nothing hc))
-
-			let x = (1,2)
-			let nbh = getAllAdjoining x hc
-			putStrLn (show(nbh))
-			let all = getAllPossible
-			putStrLn (show(all))
 			
 			let hc1 = fill hc
 			displayHc hc1

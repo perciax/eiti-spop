@@ -8,38 +8,41 @@ import Debug.Trace	-- used for debugging
 
 -------------------- SOLVER -----------------------------------------
 
-fill hc = fillHc getAllPossible hc
+fill hc = (\(Just i)-> i)(fillHc'' getAllPossible (Just hc))
 
-fillHc :: [Hex] -> Honeycomb -> Honeycomb
-fillHc [] _ = error "Honeycomb cannot be solved"
-fillHc pos hc = 
-				trace ("Calling fillHc with pos =" ++ show(pos) ++ ", hc = \n" ++ hcToString hc True)(
+fillHc'' :: [Hex] -> Maybe Honeycomb -> Maybe Honeycomb
+fillHc'' [] _ = Nothing
+fillHc'' _ Nothing = Nothing
+fillHc'' pos hc = 	-- trace ("Calling fillHc'' with pos =" ++ show(pos)  ++ ", hc = \n" ++ hcToString ((\(Just i)-> i) hc) True) -- DEBUG
+					--(
+						let nextNothing = hexIndexInHc Nothing ((\(Just i)-> i) hc)	-- Sprawdza czy jest jeszcze jakis pusty hex
+ 	
+						in	if  --trace("nextNothing: " ++ show(nextNothing))(--
+								nextNothing == Nothing
+								--) 
+							then hc -- KONIEC (plaster pelny)
 
-				let newhc = fillHc' pos hc in	--
- 
-				if (newhc == Just hc) 
-				then hc -- END: Honeycomb fully solved
+							else fillHc''' pos hc	-- Probuj wypelnic					
+					--)
 
-				else 	if newhc == Nothing then hc
-						else   fillHc pos ((\(Just i) -> i)(newhc)) 
-				)
+fillHc''' :: [Hex] -> Maybe Honeycomb -> Maybe Honeycomb
+fillHc''' [] _ = Nothing	-- jezeli mozliwe litery sie skoncza, to zwraca Nothing do fillHc'' (nie da sie wypelnic nastepnego)
+fillHc''' pos hc = 	
+					--trace ("Calling fillHc''' with pos =" ++ show(pos)  ++ ", hc = \n" ++ hcToString ((\(Just i)-> i) hc) True) -- DEBUG
+					--(
+						let newhc = fillNextNothing' pos ((\(Just i)-> i) hc)	-- wypelnij pierwsze puste
 
--- fills Honeycomb
-fillHc' :: [Hex] -> Honeycomb -> Maybe Honeycomb
-fillHc' [] _ = error "Honeycomb cannot be solved"
-fillHc' pos hc = 	
-					trace ("Calling fillHc' with pos =" ++ show(pos)  ++ ", hc = \n" ++ hcToString hc True)(
-					let nextNothing = hexIndexInHc Nothing hc 	
-					in	if  trace("nextNothing: " ++ show(nextNothing))(nextNothing == Nothing) then Just hc
-						else	let newhc = fillNextNothing' pos hc
-								in	if trace("newhc: \n" ++ (if newhc==Nothing then "Nothing" else hcToString ((\(Just i) -> i)(newhc)) True))(newhc == Nothing) 										then (\i->(Just i))(fillHc (tail pos) hc)
-									else  fillHc' pos ((\(Just i)-> i)(newhc))
-					)
+						in	if fillHc'' getAllPossible newhc == Nothing -- Jezeli nie da sie wypelnic nastepepnego pola
+
+							then fillHc''' (dropWhile (==(hexToInsert2  ( (\(Just i) -> i) (hexIndexInHc Nothing (\(Just i) -> i) hc) ) ) pos (\(Just i) -> i) hc) ) ) pos) hc	-- probuj inna litere
+							else fillHc'' getAllPossible newhc	-- wpp wypelniaj nastepna
+					--) 
+
 
 -- fills first Hex with Nothing value
 fillNextNothing' :: [Hex] -> Honeycomb -> Maybe Honeycomb
 fillNextNothing' pos hc = let index = hexIndexInHc Nothing hc in
-						if trace ("Calling fillNextNothing' with index = " ++ show(index))(index == Nothing) then Just hc
+						if index == Nothing then Just hc
 						else 	if hexToInsert2  ((\(Just i) -> i)(index)) pos hc == Nothing then Nothing
 								else  (\i -> (Just i))(replaceInHc ((\(Just i) -> i)(index)) (hexToInsert2  ((\(Just i) -> i)(index)) pos hc)  hc)
 
