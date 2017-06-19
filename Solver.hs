@@ -2,6 +2,9 @@ module Solver where
 
 -------------------- IMPORTS ----------------------------------------
 import Types
+import Display
+
+import Debug.Trace
 
 -------------------- SOLVER -----------------------------------------
 
@@ -9,23 +12,28 @@ fill hc = fillHc getAllPossible hc
 
 fillHc :: [Hex] -> Honeycomb -> Honeycomb
 fillHc [] _ = error "Honeycomb cannot be solved"
-fillHc pos hc = let newhc = fillHc' pos hc in 
-				case newhc of
-					Just hc -> (\(Just i) -> i) newhc
-					Nothing -> fillHc (tail pos) hc
-					_ -> (\(Just i) -> i) (fillHc' pos (\(Just i) -> i)(newhc))
+fillHc pos hc = 
+				trace ("Calling fillHc with pos =" ++ show(pos) ++ ", hc = \n" ++ hcToString hc True)(
+				let newhc = fillHc' pos hc in 
+				if newhc == Just hc then (\(Just i) -> i) newhc
+				else 	if newhc == Nothing then fillHc (tail pos) hc
+						else   fillHc pos ((\(Just i) -> i)(newhc)) 
+				)
 
 -- fills Honeycomb
 fillHc' :: [Hex] -> Honeycomb -> Maybe Honeycomb
 fillHc' [] _ = error "Honeycomb cannot be solved"
-fillHc' pos hc = if hexIndexInHc Nothing hc == Nothing then Just hc 
-			else	if (fillNextNothing' pos hc) == Nothing then Nothing
-					else  fillNextNothing' pos hc
+fillHc' pos hc = 	
+					trace ("Calling fillHc' with pos =" ++ show(pos)  ++ ", hc = \n" ++ hcToString hc True)(					
+					if hexIndexInHc Nothing hc == Nothing then Just hc 
+					else	if (fillNextNothing' pos hc) == Nothing then Nothing
+							else  fillNextNothing' pos hc
+					)
 
 -- fills first Hex with Nothing value
 fillNextNothing' :: [Hex] -> Honeycomb -> Maybe Honeycomb
 fillNextNothing' pos hc = let index = hexIndexInHc Nothing hc in
-						if index == Nothing then Just hc
+						if trace ("Calling fillNextNothing' with index = " ++ show(index))(index == Nothing) then Just hc
 						else 	if hexToInsert  ((\(Just i) -> i)(index)) pos hc == Nothing then Nothing
 								else  (\i -> (Just i))(replaceInHc ((\(Just i) -> i)(index)) (hexToInsert  ((\(Just i) -> i)(index)) pos hc)  hc)
 
@@ -84,14 +92,14 @@ getHexUL (r, i) hc 	| r <= 0 							= Nothing
 
 -- gets hex from down right (from next row)
 getHexDR :: (Int, Int) -> Honeycomb -> Hex
-getHexDR (r, i) hc 	| r > length (hc) - 1 				= Nothing
+getHexDR (r, i) hc 	| r >= length (hc) - 1 				= Nothing
 					| (odd r) && (i==length(hc !! r)-1)	= Nothing
 					| odd r 							= (hc !! (r+1)) !! i
 					| otherwise 						= (hc !! (r+1)) !! (i+1)
 
 -- gets hex from down left (from next row)
 getHexDL :: (Int, Int) -> Honeycomb -> Hex
-getHexDL (r, i) hc 	| r > length (hc) - 1 				= Nothing
+getHexDL (r, i) hc 	| r >= length (hc) - 1 				= Nothing
 					| (odd r) && (i==0)					= Nothing
 					| odd r 							= (hc !! (r+1)) !! (i-1)
 					| otherwise 						= (hc !! (r+1)) !! i

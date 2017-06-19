@@ -27,7 +27,7 @@ main = do
 			let all = getAllPossible
 			putStrLn (show(all))
 			
-			let hc1 = fillHc hc
+			let hc1 = fill hc
 			displayHc hc1
 
 ----------------- LOADING FROM FILE -----------------------------
