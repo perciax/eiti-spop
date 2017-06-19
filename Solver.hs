@@ -2,9 +2,9 @@ module Solver where
 
 -------------------- IMPORTS ----------------------------------------
 import Types
-import Display
 
-import Debug.Trace
+import Display		-- used for debugging
+import Debug.Trace	-- used for debugging
 
 -------------------- SOLVER -----------------------------------------
 
@@ -14,9 +14,13 @@ fillHc :: [Hex] -> Honeycomb -> Honeycomb
 fillHc [] _ = error "Honeycomb cannot be solved"
 fillHc pos hc = 
 				trace ("Calling fillHc with pos =" ++ show(pos) ++ ", hc = \n" ++ hcToString hc True)(
-				let newhc = fillHc' pos hc in 
-				if newhc == Just hc then (\(Just i) -> i) newhc
-				else 	if newhc == Nothing then fillHc (tail pos) hc
+
+				let newhc = fillHc' pos hc in	--
+ 
+				if (newhc == Just hc) 
+				then hc -- END: Honeycomb fully solved
+
+				else 	if newhc == Nothing then hc
 						else   fillHc pos ((\(Just i) -> i)(newhc)) 
 				)
 
@@ -24,18 +28,34 @@ fillHc pos hc =
 fillHc' :: [Hex] -> Honeycomb -> Maybe Honeycomb
 fillHc' [] _ = error "Honeycomb cannot be solved"
 fillHc' pos hc = 	
-					trace ("Calling fillHc' with pos =" ++ show(pos)  ++ ", hc = \n" ++ hcToString hc True)(					
-					if hexIndexInHc Nothing hc == Nothing then Just hc 
-					else	if (fillNextNothing' pos hc) == Nothing then Nothing
-							else  fillNextNothing' pos hc
+					trace ("Calling fillHc' with pos =" ++ show(pos)  ++ ", hc = \n" ++ hcToString hc True)(
+					let nextNothing = hexIndexInHc Nothing hc 	
+					in	if  trace("nextNothing: " ++ show(nextNothing))(nextNothing == Nothing) then Just hc
+						else	let newhc = fillNextNothing' pos hc
+								in	if trace("newhc: \n" ++ (if newhc==Nothing then "Nothing" else hcToString ((\(Just i) -> i)(newhc)) True))(newhc == Nothing) 										then (\i->(Just i))(fillHc (tail pos) hc)
+									else  fillHc' pos ((\(Just i)-> i)(newhc))
 					)
 
 -- fills first Hex with Nothing value
 fillNextNothing' :: [Hex] -> Honeycomb -> Maybe Honeycomb
 fillNextNothing' pos hc = let index = hexIndexInHc Nothing hc in
 						if trace ("Calling fillNextNothing' with index = " ++ show(index))(index == Nothing) then Just hc
-						else 	if hexToInsert  ((\(Just i) -> i)(index)) pos hc == Nothing then Nothing
-								else  (\i -> (Just i))(replaceInHc ((\(Just i) -> i)(index)) (hexToInsert  ((\(Just i) -> i)(index)) pos hc)  hc)
+						else 	if hexToInsert2  ((\(Just i) -> i)(index)) pos hc == Nothing then Nothing
+								else  (\i -> (Just i))(replaceInHc ((\(Just i) -> i)(index)) (hexToInsert2  ((\(Just i) -> i)(index)) pos hc)  hc)
+
+
+--------------- FINDING POSSIBLE HEX FOR GIVEN INDEXES ------------------------
+
+-- returns hex to insert
+hexToInsert2 :: (Int, Int) -> [Hex] -> Honeycomb -> Hex
+hexToInsert2 _ [] _ = Nothing
+hexToInsert2 (r,i) pos hc 	| hexToInsert2' (r,i) pos hc == Nothing = Nothing
+							| otherwise = (\(Just i) -> i)(hexToInsert2' (r,i) pos hc)
+
+hexToInsert2' :: (Int, Int) -> [Hex] -> Honeycomb -> Maybe Hex
+hexToInsert2' _ [] _ = Nothing
+hexToInsert2' (r,i) pos hc = firstNotOn pos (getAllColliding (r,i) hc)
+
 
 -- returns hex to insert
 hexToInsert :: (Int, Int) -> [Hex] -> Honeycomb -> Hex
@@ -47,21 +67,25 @@ hexToInsert' :: (Int, Int) -> [Hex] -> Honeycomb -> Maybe Hex
 hexToInsert' _ [] _ = Nothing
 hexToInsert' (r,i) pos hc = firstNotOn pos (getAllAdjoining (r,i) hc)
 
--- replaces hex in honeycomb
-replaceInHc :: (Int,Int) -> Hex -> Honeycomb -> Honeycomb
-replaceInHc (r, i) hex hc = replaceAtIndex r (replaceAtIndex i hex (hc !! r)) hc
-
 -- returns first from list that is not on second one
 firstNotOn :: Eq a => [a] -> [a] -> Maybe a
 firstNotOn [] _ = Nothing
 firstNotOn (x:xs) list 	| not(elem x list) 	= Just x
 						| otherwise 		= firstNotOn xs list
 
+------------------ REPLACING HEX IN HONEYCOMB ---------------------------------
+
+-- replaces hex in honeycomb
+replaceInHc :: (Int,Int) -> Hex -> Honeycomb -> Honeycomb
+replaceInHc (r, i) hex hc = replaceAtIndex r (replaceAtIndex i hex (hc !! r)) hc
+
+
+
 -- replaces element on list
 replaceAtIndex :: Int -> a -> [a] -> [a]
 replaceAtIndex index elem list = take index list ++ [elem] ++ drop (index + 1) list
 
--------------------- HEX GETTERS ------------------------------------
+-------------------- HEX GETTERS ----------------------------------------------
 -- gets hex from indexed place
 getHex :: (Int, Int) -> Honeycomb -> Hex
 getHex (r, i) hc = (hc !! r) !! i
@@ -104,7 +128,7 @@ getHexDL (r, i) hc 	| r >= length (hc) - 1 				= Nothing
 					| odd r 							= (hc !! (r+1)) !! (i-1)
 					| otherwise 						= (hc !! (r+1)) !! i
 
--- gets list of all (6) Hexes thah adjoin one with given indexes
+-- gets list of all (6) Hexes that adjoin one with given indexes
 getAllAdjoining :: (Int, Int) -> Honeycomb -> [Hex]
 getAllAdjoining x hc = [(getHexUR x hc),(getHexR x hc), (getHexDR x hc),
 					(getHexDL x hc), (getHexL x hc), (getHexUL x hc)]
@@ -113,6 +137,50 @@ getAllAdjoining x hc = [(getHexUR x hc),(getHexR x hc), (getHexDR x hc),
 getAllPossible :: [Hex]
 getAllPossible = map (\i -> Just i) ['A' .. 'G'] 
 
+
+------------------------- 7 HEX GETTERS ------------------------------------
+-- gets 7 hexes around one from right (next in row)
+get7HexR :: (Int, Int) -> Honeycomb -> [Hex]
+get7HexR (r, i) hc = if i < (length (hc !! r) - 1) 
+					then (getAllAdjoining (r,i+1) hc) ++ [(hc !! r) !! (i+1)]
+					else [Nothing]
+
+-- gets hex from left (previous in row)
+get7HexL :: (Int, Int) -> Honeycomb -> [Hex]
+get7HexL (r, i) hc = if i == 0 then [Nothing]
+					else (getAllAdjoining (r,i-1) hc) ++ [(hc !! r) !! (i-1)]
+
+-- gets hex from up right (from previous row)
+get7HexUR :: (Int, Int) -> Honeycomb -> [Hex]
+get7HexUR (r, i) hc | r <= 0 							= [Nothing]
+					| (odd r) && (i==length(hc !! r)-1)	= [Nothing]
+					| odd r 							= (getAllAdjoining (r-1,i) hc) ++ [(hc !! (r-1)) !! i]
+					| otherwise 						= (getAllAdjoining (r-1,i+1) hc) ++ [(hc !! (r-1)) !! (i+1)]
+
+-- gets hex from up left (from previous row)
+get7HexUL :: (Int, Int) -> Honeycomb -> [Hex]
+get7HexUL (r, i) hc | r <= 0 							= [Nothing]
+					| (odd r) && (i==0)					= [Nothing]
+					| odd r 							= (getAllAdjoining (r-1,i-1) hc) ++ [(hc !! (r-1)) !! (i-1)]
+					| otherwise 						= (getAllAdjoining (r-1,i) hc) ++ [(hc !! (r-1)) !! i]
+
+-- gets hex from down right (from next row)
+get7HexDR :: (Int, Int) -> Honeycomb -> [Hex]
+get7HexDR (r, i) hc | r >= length (hc) - 1 				= [Nothing]
+					| (odd r) && (i==length(hc !! r)-1)	= [Nothing]
+					| odd r 							= (getAllAdjoining (r+1,i) hc) ++ [(hc !! (r+1)) !! i]
+					| otherwise 						= (getAllAdjoining (r+1,i+1) hc) ++ [(hc !! (r+1)) !! (i+1)]
+
+-- gets hex from down left (from next row)
+get7HexDL :: (Int, Int) -> Honeycomb -> [Hex]
+get7HexDL (r, i) hc | r >= length (hc) - 1 				= [Nothing]
+					| (odd r) && (i==0)					= [Nothing]
+					| odd r 							= (getAllAdjoining (r+1,i-1) hc) ++ [(hc !! (r+1)) !! (i-1)]
+					| otherwise 						= (getAllAdjoining (r+1,i) hc) ++ [(hc !! (r+1)) !! i]
+
+getAllColliding :: (Int, Int) -> Honeycomb -> [Hex]
+getAllColliding (r,i) hc = get7HexUR (r, i) hc ++ get7HexR (r, i) hc ++ get7HexDR (r, i) hc 
+							++ get7HexDL (r, i) hc ++ get7HexL (r, i) hc ++ get7HexUL (r, i) hc 
 
 -------------------------- HEX FINDERS -------------------------------------
 
